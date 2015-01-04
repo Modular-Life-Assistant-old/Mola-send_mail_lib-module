@@ -86,46 +86,50 @@ class Module(Component):
 
     @handler('send_mail', channel='*')
     def send_mail(self, subject, to, msg, account=''):
-        with self.login(account) as conn:
-            config = self.__get_config(account)
+        conn = self.login(account)
 
-            if isinstance(to, str):
-                to = to.replace(' ', '').split(',') if ',' in to else [to]
+        if not conn:
+            return
 
-            mail = MIMEText(msg, 'plain')
-            mail['Subject'] = subject
-            mail['To'] = ', '.join(to)
+        config = self.__get_config(account)
 
-            if not 'from' in config:
-                config['from'] = config['login']
-                
-            if 'name' in config:
-                mail['From'] = '%(name)s <%(from)s>' % config
+        if isinstance(to, str):
+            to = to.replace(' ', '').split(',') if ',' in to else [to]
 
-            else:
-                mail['From'] = config['from']
+        mail = MIMEText(msg, 'plain')
+        mail['Subject'] = subject
+        mail['To'] = ', '.join(to)
 
-            try:
-                conn.sendmail(account, to, mail.as_string())
+        if not 'from' in config:
+            config['from'] = config['login']
+            
+        if 'name' in config:
+            mail['From'] = '%(name)s <%(from)s>' % config
 
-            except smtplib.SMTPRecipientsRefused as e:
-                # All recipients were refused. Nobody got the mail. The recipients attribute of the exception object is a dictionary with information about the refused recipients (like the one returned when at least one recipient was accepted).
-                Log.error('smtp recipients refused: %s' % str(e))
+        else:
+            mail['From'] = config['from']
 
-            except smtplib.SMTPHeloError as e:
-                # The server didn’t reply properly to the HELO greeting.
-                Log.error('smtp hello error: %s' % str(e))
+        try:
+            conn.sendmail(account, to, mail.as_string())
 
-            except smtplib.SMTPSenderRefused as e:
-                # The server didn’t accept the from_addr.
-                Log.error('smtp sender refused: %s' % str(e))
+        except smtplib.SMTPRecipientsRefused as e:
+            # All recipients were refused. Nobody got the mail. The recipients attribute of the exception object is a dictionary with information about the refused recipients (like the one returned when at least one recipient was accepted).
+            Log.error('smtp recipients refused: %s' % str(e))
 
-            except smtplib.SMTPDataError as e:
-                # The server replied with an unexpected error code (other than a refusal of a recipient).
-                Log.error('smtp data error: %s' % str(e))
+        except smtplib.SMTPHeloError as e:
+            # The server didn’t reply properly to the HELO greeting.
+            Log.error('smtp hello error: %s' % str(e))
 
-            finally:
-                conn.close()
+        except smtplib.SMTPSenderRefused as e:
+            # The server didn’t accept the from_addr.
+            Log.error('smtp sender refused: %s' % str(e))
+
+        except smtplib.SMTPDataError as e:
+            # The server replied with an unexpected error code (other than a refusal of a recipient).
+            Log.error('smtp data error: %s' % str(e))
+
+        finally:
+            conn.close()
 
     def started(self, component):
         self.load_configuration()
