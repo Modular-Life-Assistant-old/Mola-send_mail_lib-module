@@ -10,7 +10,7 @@ import smtplib
 
 class send_mail(Event):
     def __init__(self, subject, to, msg, account=''):
-        super(send_mail, self).__init__(subject, to, msg, account=account)
+        super().__init__(subject, to, msg, account=account)
 
 
 class Module(Component):
